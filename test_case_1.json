@@ -1,0 +1,42 @@
+{
+  "text": "The patient presents with fever, headache, and nausea for 3 days.",
+  "symptoms": [
+    {
+      "symptom": "fever",
+      "type": "SYMPTOM",
+      "confidence": 0.8,
+      "source": "keyword_match",
+      "context": "the patient presents with fever, headache, and nausea for 3 days."
+    },
+    {
+      "symptom": "headache",
+      "type": "SYMPTOM",
+      "confidence": 0.8,
+      "source": "keyword_match",
+      "context": "the patient presents with fever, headache, and nausea for 3 days."
+    },
+    {
+      "symptom": "nausea",
+      "type": "SYMPTOM",
+      "confidence": 0.8,
+      "source": "keyword_match",
+      "context": "the patient presents with fever, headache, and nausea for 3 days."
+    },
+    {
+      "symptom": "pain",
+      "type": "SYMPTOM",
+      "confidence": 0.8,
+      "source": "keyword_match",
+      "context": "the patient presents with fever, headache, and nausea for 3 days."
+    }
+  ],
+  "metadata": {
+    "text_length": 65,
+    "extraction_methods_used": [
+      "clinical_ner",
+      "keyword_match",
+      "spacy"
+    ],
+    "total_symptoms": 4
+  }
+}

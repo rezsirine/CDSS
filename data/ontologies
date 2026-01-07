@@ -1,0 +1,13 @@
+from owlready2 import *
+
+class MedicalOntology:
+    """Ontologies médicales (SNOMED CT, MeSH, ICD-10)"""
+    
+    def __init__(self):
+        self.snomed = self._load_snomed()
+        self.icd10 = self._load_icd10()
+        self.mesh = self._load_mesh()
+        
+    def check_consistency(self, diagnosis: str, symptoms: List[str]) -> bool:
+        """Vérifie la cohérence selon ontologies"""
+        pass
