@@ -56,7 +56,7 @@ class ClinicalWorkflow:
             print("Clinical Workflow initialized")
             print(f"Agents loaded: {len(self.agents)}")
             for agent_name, agent in self.agents.items():
-                status = "✅" if agent is not None else "❌"
+                status = "" if agent is not None else ""
                 print(f"  {status} {agent_name}")
     
     def _initialize_agents(self):
@@ -70,7 +70,7 @@ class ClinicalWorkflow:
                 self.agents['symptom'] = SymptomAgent(verbose=self.verbose)
             except ImportError as e:
                 if self.verbose:
-                    print(f"  ⚠️ SymptomAgent import failed: {e}")
+                    print(f"  warning SymptomAgent import failed: {e}")
                 self.agents['symptom'] = self._create_dummy_agent("SymptomAgent")
             
             # Hypothesis Agent
@@ -84,7 +84,7 @@ class ClinicalWorkflow:
                 )
             except ImportError as e:
                 if self.verbose:
-                    print(f"  ⚠️ HypothesisAgent import failed: {e}")
+                    print(f"  warning HypothesisAgent import failed: {e}")
                 self.agents['hypothesis'] = self._create_dummy_agent("HypothesisAgent")
             
             # Validator Agent
@@ -95,7 +95,7 @@ class ClinicalWorkflow:
                 self.agents['validator'] = ValidatorAgent(verbose=self.verbose)
             except ImportError as e:
                 if self.verbose:
-                    print(f"  ⚠️ ValidatorAgent import failed: {e}")
+                    print(f"  warning ValidatorAgent import failed: {e}")
                 self.agents['validator'] = self._create_dummy_agent("ValidatorAgent")
             
             # XAI Agent
@@ -106,7 +106,7 @@ class ClinicalWorkflow:
                 self.agents['xai'] = XAIAgent(verbose=self.verbose)
             except ImportError as e:
                 if self.verbose:
-                    print(f"  ⚠️ XAIAgent import failed: {e}")
+                    print(f"  warning XAIAgent import failed: {e}")
                 self.agents['xai'] = self._create_dummy_agent("XAIAgent")
             
             # Confidence Agent
@@ -117,7 +117,7 @@ class ClinicalWorkflow:
                 self.agents['confidence'] = ConfidenceAgent(verbose=self.verbose)
             except ImportError as e:
                 if self.verbose:
-                    print(f"  ⚠️ ConfidenceAgent import failed: {e}")
+                    print(f"  warning ConfidenceAgent import failed: {e}")
                 self.agents['confidence'] = self._create_dummy_agent("ConfidenceAgent")
                 
         except Exception as e:
@@ -165,7 +165,7 @@ class ClinicalWorkflow:
                 }
         
         if self.verbose:
-            print(f"  ⚠️ Created dummy agent for {name}")
+            print(f"  warning Created dummy agent for {name}")
         return DummyAgent(name)
     
     async def run(self, patient_input: str) -> Dict:
@@ -207,7 +207,7 @@ class ClinicalWorkflow:
         except Exception as e:
             error_msg = f"Workflow execution error: {str(e)}"
             if self.verbose:
-                print(f"❌ {error_msg}")
+                print(f" {error_msg}")
                 traceback.print_exc()
             state.errors.append(error_msg)
         
@@ -217,7 +217,7 @@ class ClinicalWorkflow:
             state.total_duration = (state.end_time - state.start_time).total_seconds()
         
         if self.verbose:
-            status = "✅" if not state.errors else "⚠️"
+            status = "" if not state.errors else "warning"
             print(f"\n{status} Workflow completed in {state.total_duration:.2f} seconds")
             if state.errors:
                 print(f"Errors: {len(state.errors)}")
@@ -242,7 +242,7 @@ class ClinicalWorkflow:
                 state.symptoms = results.get('symptoms', [])
                 
                 if self.verbose:
-                    print(f"  ✅ Extracted {len(state.symptoms)} symptoms")
+                    print(f"   Extracted {len(state.symptoms)} symptoms")
                     for symptom in state.symptoms[:5]:  # Afficher les 5 premiers
                         print(f"    - {symptom['symptom']} ({symptom.get('confidence', 0):.2f})")
                     if len(state.symptoms) > 5:
@@ -252,12 +252,12 @@ class ClinicalWorkflow:
                 error_msg = f"Symptom extraction failed: {str(e)}"
                 state.errors.append(error_msg)
                 if self.verbose:
-                    print(f"  ❌ {error_msg}")
+                    print(f"   {error_msg}")
         else:
             error_msg = "Symptom agent not available"
             state.errors.append(error_msg)
             if self.verbose:
-                print(f"  ❌ {error_msg}")
+                print(f"   {error_msg}")
         
         return state
     
@@ -291,7 +291,7 @@ class ClinicalWorkflow:
                     state.hypotheses = results
                 
                 if self.verbose:
-                    print(f"  ✅ Generated {len(state.hypotheses)} hypotheses")
+                    print(f"   Generated {len(state.hypotheses)} hypotheses")
                     for i, hyp in enumerate(state.hypotheses[:3], 1):
                         if isinstance(hyp, dict):
                             diag = hyp.get('diagnosis', 'Unknown')
@@ -304,12 +304,12 @@ class ClinicalWorkflow:
                 error_msg = f"Hypothesis generation failed: {str(e)}"
                 state.errors.append(error_msg)
                 if self.verbose:
-                    print(f"  ❌ {error_msg}")
+                    print(f"   {error_msg}")
         else:
             error_msg = "Hypothesis agent not available"
             state.errors.append(error_msg)
             if self.verbose:
-                print(f"  ❌ {error_msg}")
+                print(f"   {error_msg}")
         
         return state
     
@@ -351,7 +351,7 @@ class ClinicalWorkflow:
                 
                 if self.verbose:
                     valid_count = sum(1 for v in state.validations if v.get('valid', False))
-                    print(f"  ✅ Validated {len(state.validations)} hypotheses ({valid_count} valid)")
+                    print(f"   Validated {len(state.validations)} hypotheses ({valid_count} valid)")
                     
             except Exception as e:
                 error_msg = f"Clinical validation failed: {str(e)}"
@@ -393,7 +393,7 @@ class ClinicalWorkflow:
                 state.explanations = explanations
                 
                 if self.verbose:
-                    print(f"  ✅ Generated explanations for {len(explanations)} hypotheses")
+                    print(f"   Generated explanations for {len(explanations)} hypotheses")
                     
             except Exception as e:
                 error_msg = f"XAI explanation failed: {str(e)}"
@@ -480,12 +480,12 @@ async def _process_confidence(self, state: WorkflowState) -> WorkflowState:
             error_msg = f"Confidence calculation failed: {str(e)}"
             state.errors.append(error_msg)
             if self.verbose:
-                print(f"  ❌ {error_msg}")
+                print(f"   {error_msg}")
     else:
         error_msg = "Confidence agent not available"
         state.errors.append(error_msg)
         if self.verbose:
-            print(f"  ❌ {error_msg}")
+            print(f"   {error_msg}")
     
     return state
     async def _process_finalization(self, state: WorkflowState) -> WorkflowState:
@@ -507,14 +507,14 @@ async def _process_confidence(self, state: WorkflowState) -> WorkflowState:
             
             if self.verbose:
                 if state.final_diagnosis:
-                    print(f"  ✅ Final diagnosis: {state.final_diagnosis}")
-                print(f"  ✅ Generated {len(state.recommendations)} recommendations")
+                    print(f"   Final diagnosis: {state.final_diagnosis}")
+                print(f"   Generated {len(state.recommendations)} recommendations")
                 
         except Exception as e:
             error_msg = f"Finalization failed: {str(e)}"
             state.errors.append(error_msg)
             if self.verbose:
-                print(f"  ❌ {error_msg}")
+                print(f"   {error_msg}")
         
         return state
     
