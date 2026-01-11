@@ -1,0 +1,36 @@
+======================================================================
+CLINICAL MULTI-AGENT SYSTEM - EVALUATION REPORT
+======================================================================
+
+1. DIAGNOSTIC PERFORMANCE
+----------------------------------------------------------------------
+  ACCURACY: 0.4800
+  F1_MACRO: 0.1463
+  F1_WEIGHTED: 0.3687
+  PRECISION: 0.1413
+  RECALL: 0.1849
+
+2. EXPLANATION QUALITY
+----------------------------------------------------------------------
+  AVG_CONSISTENCY: 0.0000
+  AVG_PLAUSIBILITY: 0.0000
+  AVG_COMPLETENESS: 0.0000
+  N_EXPLANATIONS: 50.0000
+
+3. RELIABILITY & CALIBRATION
+----------------------------------------------------------------------
+  ECE: 0.3509
+  MCE: 0.5250
+  BRIER_SCORE: 0.2910
+  CONFIDENCE_MEAN: 0.4990
+  CONFIDENCE_STD: 0.1483
+
+4. BENCHMARK COMPARISON
+----------------------------------------------------------------------
+              Model  Accuracy  F1-Score  Explainability      ECE
+ Multi-Agent (Ours)      0.48  0.146265            0.00 0.350893
+      Clinical BERT      0.72  0.680000            0.45 0.150000
+GPT-3.5 (Zero-shot)      0.65  0.610000            0.50 0.220000
+  Rule-based System      0.58  0.550000            0.80 0.300000
+
+======================================================================

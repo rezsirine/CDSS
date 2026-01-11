@@ -1,3 +1,7 @@
+"""
+Validator Agent - Version corrigée
+"""
+
 from typing import List, Dict, Any, Optional
 from data.ontologies import MedicalOntology
 
@@ -25,10 +29,6 @@ class ValidatorAgent:
             "contradictions": {
                 "fever": ["hypothermia"],
                 "diarrhea": ["constipation"]
-            },
-            "age_considerations": {
-                "pediatric": ["age < 18"],
-                "geriatric": ["age > 65"]
             }
         }
     
@@ -67,13 +67,9 @@ class ValidatorAgent:
             "validation_details": {
                 "ontology_consistency": ontology_result,
                 "emergency_indicators": emergency_flags,
-                "contradictions": contradictions,
-                "temporal_consistency": self._check_temporal_patterns(symptoms),
-                "comorbidity_consistency": self._check_comorbidities(hypothesis),
-                "severity_alignment": self._check_severity(hypothesis, symptoms)
+                "contradictions": contradictions
             },
-            "flags": self._generate_red_flags(ontology_result, emergency_flags, contradictions),
-            "recommendations": self._generate_recommendations(ontology_result, emergency_flags)
+            "flags": self._generate_red_flags(ontology_result, emergency_flags, contradictions)
         }
     
     def _check_emergency_indicators(self, symptoms: List[str]) -> Dict:
@@ -85,7 +81,7 @@ class ValidatorAgent:
             "has_emergency": len(found_emergencies) > 0,
             "emergency_symptoms": found_emergencies,
             "count": len(found_emergencies),
-            "score": min(len(found_emergencies) * 0.3, 1.0)  # Pénalité pour symptômes d'urgence
+            "score": 0.8 if len(found_emergencies) == 0 else 0.5  # Pénalité pour symptômes d'urgence
         }
     
     def _check_contradictions(self, symptoms: List[str]) -> Dict:
@@ -103,93 +99,49 @@ class ValidatorAgent:
             "has_contradictions": len(found_contradictions) > 0,
             "contradiction_pairs": found_contradictions,
             "count": len(found_contradictions),
-            "score": max(0, 1.0 - len(found_contradictions) * 0.2)  # Pénalité pour contradictions
+            "score": 0.9 if len(found_contradictions) == 0 else 0.6  # Pénalité pour contradictions
         }
     
-    def _check_temporal_patterns(self, symptoms: List[str]) -> Dict:
-        """Vérifie les patterns temporels (simplifié)"""
-        return self.ontology.validate_temporal_pattern([
-            {"symptom": s, "duration": "unknown"} for s in symptoms
-        ])
-    
-    def _check_comorbidities(self, hypothesis: Dict) -> Dict:
-        """Vérifie les comorbidités potentielles (simplifié)"""
-        return {
-            "common_comorbidities": [],
-            "risk_factors": [],
-            "score": 0.8
+    def _compute_validation_score(self, validation_results: Dict) -> float:
+        """Calcule un score global de validation"""
+        weights = {
+            "ontology": 0.6,  # Poids principal pour la cohérence ontologique
+            "emergency": 0.3,
+            "contradictions": 0.1
         }
-    
-    def _check_severity(self, hypothesis: Dict, symptoms: List[str]) -> Dict:
-        """Vérifie l'alignement de sévérité"""
-        # Logique simplifiée
-        severe_symptoms = ["severe_headache", "high_fever", "chest_pain"]
-        severe_count = sum(1 for s in symptoms if s in severe_symptoms)
         
-        return {
-            "severity_score": min(severe_count * 0.3, 1.0),
-            "severe_symptoms_count": severe_count,
-            "requires_urgent_care": severe_count >= 2
+        scores = {
+            "ontology": validation_results["ontology"].get("score", 0.5),
+            "emergency": validation_results["emergency"].get("score", 0.8),
+            "contradictions": validation_results["contradictions"].get("score", 0.9)
         }
+        
+        # Calcul pondéré
+        overall_score = sum(scores[key] * weights[key] for key in weights)
+        
+        # Ajustements
+        ontology_score = validation_results["ontology"].get("score", 0)
+        if ontology_score > 0.7:
+            overall_score = min(overall_score + 0.1, 1.0)
+        elif ontology_score < 0.3:
+            overall_score = max(overall_score - 0.1, 0.0)
+        
+        return min(max(overall_score, 0.0), 1.0)
     
-# Dans la méthode _compute_validation_score, augmentez les scores de base :
-def _compute_validation_score(self, validation_results: Dict) -> float:
-    """Calcule un score global de validation amélioré"""
-    weights = {
-        "ontology": 0.5,  # Augmenté
-        "emergency": 0.2,
-        "contradictions": 0.15,
-        "temporal": 0.1,
-        "severity": 0.05
-    }
-    
-    # Scores de base plus élevés
-    scores = {
-        "ontology": validation_results["ontology"].get("score", 0.6),  # Augmenté de 0.5 à 0.6
-        "emergency": validation_results["emergency"].get("score", 0.8),  # Augmenté
-        "contradictions": validation_results["contradictions"].get("score", 0.9),  # Augmenté
-        "temporal": validation_results.get("temporal", {"score": 0.8})["score"],  # Augmenté
-        "severity": validation_results.get("severity", {"score": 0.7})["score"]  # Nouveau
-    }
-    
-    overall_score = sum(scores[key] * weights[key] for key in weights)
-    
-    # Bonus pour les bonnes correspondances
-    ontology_score = validation_results["ontology"].get("score", 0)
-    if ontology_score > 0.7:
-        overall_score = min(overall_score + 0.1, 1.0)
-    
-    return min(max(overall_score, 0.0), 1.0)
-    def _generate_red_flags(self, *validation_results) -> List[str]:
+    def _generate_red_flags(self, ontology_result: Dict, emergency_flags: Dict, contradictions: Dict) -> List[str]:
         """Génère des drapeaux rouges cliniques"""
         flags = []
         
-        for result in validation_results:
-            if isinstance(result, dict):
-                if result.get("has_emergency", False):
-                    flags.append(f"Emergency symptoms detected: {result.get('emergency_symptoms', [])}")
-                if result.get("has_contradictions", False):
-                    flags.append(f"Symptom contradictions: {result.get('contradiction_pairs', [])}")
+        if emergency_flags.get("has_emergency", False):
+            flags.append(f"Emergency symptoms: {emergency_flags.get('emergency_symptoms', [])}")
+        
+        if contradictions.get("has_contradictions", False):
+            flags.append(f"Contradictions: {contradictions.get('contradiction_pairs', [])}")
+        
+        if ontology_result.get("score", 0) < 0.3:
+            flags.append("Low ontology consistency")
         
         return flags
-    
-    def _generate_recommendations(self, ontology_result: Dict, emergency_flags: Dict) -> List[str]:
-        """Génère des recommandations cliniques"""
-        recommendations = []
-        
-        # Recommandations basées sur l'ontologie
-        if ontology_result.get("score", 0) < 0.5:
-            recommendations.append("Low symptom match - consider alternative diagnoses")
-        
-        missing_symptoms = ontology_result.get("missing_symptoms", [])
-        if missing_symptoms:
-            recommendations.append(f"Ask about missing symptoms: {missing_symptoms}")
-        
-        # Recommandations d'urgence
-        if emergency_flags.get("has_emergency", False):
-            recommendations.append("Emergency symptoms present - consider urgent evaluation")
-        
-        return recommendations
     
     def validate_hypotheses(self, hypotheses: List[Dict]) -> List[Dict]:
         """Valide une liste d'hypothèses"""
@@ -228,3 +180,6 @@ def _compute_validation_score(self, validation_results: Dict) -> float:
                 found_symptoms.append(symptom)
         
         return found_symptoms
+
+# Exporter
+__all__ = ['ValidatorAgent']

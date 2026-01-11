@@ -1,8 +1,9 @@
 """
-Symptom Agent - Version simplifiée sans Whisper
+Symptom Agent - Version avec spaCy maintenant disponible
 """
 
-from typing import List, Dict, Optional
+import spacy
+from typing import List, Dict, Optional, Tuple
 import json
 from dataclasses import dataclass
 import re
@@ -11,12 +12,12 @@ import re
 class Symptom:
     """Classe pour représenter un symptôme extrait"""
     text: str
-    type: str
+    type: str  # e.g., NEUROLOGICAL, RESPIRATORY, CARDIOVASCULAR, etc.
     confidence: float
     source: str
     context: Optional[str] = None
     
-    def to_dict(self):
+    def to_dict(self) -> Dict:
         return {
             "symptom": self.text,
             "type": self.type,
@@ -27,169 +28,69 @@ class Symptom:
 
 class SymptomAgent:
     """
-    Agent d'extraction de symptômes (sans Whisper)
+    Agent d'extraction de symptômes avec spaCy
     """
     
-    def __init__(self, use_gpu: bool = False, verbose: bool = True):
-        self.use_gpu = use_gpu
+    def __init__(self, verbose: bool = True):
         self.verbose = verbose
-
-        if verbose:
-            print(" Initializing Symptom Agent...")
-
-        # spaCy disabled to avoid torch dependency issues
-        self.nlp = None
-
-        # Charger NER clinique (désactivé pour éviter les problèmes de chargement)
-        self.ner_pipeline = None
-
-        # Dictionnaire de symptômes
-        self.symptom_patterns = {
-            'fever': [r'fever', r'temperature', r'febrile', r'fièvre'],
-            'headache': [r'headache', r'migraine', r'maux de tête'],
-            'nausea': [r'nausea', r'nauseous', r'nausée'],
-            'pain': [r'pain', r'ache', r'douleur'],
-            'fatigue': [r'fatigue', r'tired', r'fatigué'],
-            'cough': [r'cough', r'coughing', r'toux'],
-            'shortness of breath': [r'shortness of breath', r'difficulty breathing', r'essoufflement'],
-            'chest pain': [r'chest pain', r'douleur thoracique'],
-            'dizziness': [r'dizziness', r'vertigo', r'vertiges'],
-            'vomiting': [r'vomiting', r'vomit', r'vomissement'],
-            'diarrhea': [r'diarrhea', r'diarrhoea', r'diarrhée'],
-            'rash': [r'rash', r'skin rash', r'éruption cutanée'],
-            'chills': [r'chills', r'shivering', r'frissons']
-        }
-
-        if verbose:
-            print(" Symptom Agent initialized")
-    
-    def extract_from_text(self, text: str, include_context: bool = True) -> Dict:
-        """Extraire les symptômes d'un texte"""
-        results = {
-            "text": text,
-            "symptoms": [],
-            "metadata": {
-                "text_length": len(text),
-                "extraction_methods_used": []
-            }
-        }
         
+        if verbose:
+            print("🔍 Initializing Symptom Agent with spaCy...")
+        
+        try:
+            # Charger le modèle spaCy
+            self.nlp = spacy.load("en_core_web_sm")
+            if verbose:
+                print("✅ spaCy model loaded successfully")
+        except Exception as e:
+            print(f"⚠️ Could not load spaCy model: {e}")
+            self.nlp = None
+        
+        # Initialiser les patterns pour fallback
+        self.symptom_patterns = self._initialize_symptom_patterns()
+        
+        if verbose:
+            print("✅ Symptom Agent initialized")
+    
+    def _initialize_symptom_patterns(self):
+        """Patterns pour fallback si spaCy échoue"""
+        return {
+            "fever": {"type": "CONSTITUTIONAL", "patterns": [r"fever", r"temperature"]},
+            "headache": {"type": "NEUROLOGICAL", "patterns": [r"headache", r"migraine"]},
+            "chest pain": {"type": "CARDIOVASCULAR", "patterns": [r"chest pain"]},
+            "shortness of breath": {"type": "RESPIRATORY", "patterns": [r"shortness of breath"]},
+            "cough": {"type": "RESPIRATORY", "patterns": [r"cough"]},
+            "nausea": {"type": "GASTROINTESTINAL", "patterns": [r"nausea"]},
+            "vomiting": {"type": "GASTROINTESTINAL", "patterns": [r"vomit"]},
+            "fatigue": {"type": "CONSTITUTIONAL", "patterns": [r"fatigue"]},
+        }
+    
+    def extract_symptoms(self, text: str) -> List[Symptom]:
+        """Extraction principale avec spaCy"""
         symptoms = []
         
-        # Méthode 1: NER clinique (si disponible)
-        if self.ner_pipeline:
-            try:
-                ner_symptoms = self._extract_with_ner(text)
-                symptoms.extend(ner_symptoms)
-                results["metadata"]["extraction_methods_used"].append("clinical_ner")
-            except Exception as e:
-                if self.verbose:
-                    print(f" NER extraction failed: {e}")
-        
-        # Méthode 2: Mots-clés
-        keyword_symptoms = self._extract_with_keywords(text, include_context)
-        symptoms.extend(keyword_symptoms)
-        if keyword_symptoms:
-            results["metadata"]["extraction_methods_used"].append("keyword_match")
-        
-        # Méthode 3: spaCy
+        # Méthode 1: spaCy NER
         if self.nlp:
-            try:
-                spacy_symptoms = self._extract_with_spacy(text)
-                symptoms.extend(spacy_symptoms)
-                results["metadata"]["extraction_methods_used"].append("spacy")
-            except Exception as e:
-                if self.verbose:
-                    print(f" spaCy extraction failed: {e}")
+            spacy_symptoms = self._extract_with_spacy(text)
+            symptoms.extend(spacy_symptoms)
+        
+        # Méthode 2: Keyword fallback
+        keyword_symptoms = self._extract_with_keywords(text)
+        symptoms.extend(keyword_symptoms)
         
         # Dédupliquer
         unique_symptoms = []
         seen = set()
         for symptom in symptoms:
-            symptom_text = symptom.text.lower()
-            if symptom_text not in seen:
+            if symptom.text not in seen:
                 unique_symptoms.append(symptom)
-                seen.add(symptom_text)
+                seen.add(symptom.text)
         
-        # Trier par confiance
-        unique_symptoms.sort(key=lambda x: x.confidence, reverse=True)
-        
-        results["symptoms"] = [s.to_dict() for s in unique_symptoms]
-        results["metadata"]["total_symptoms"] = len(unique_symptoms)
-        
-        return results
-    
-    def _extract_with_ner(self, text: str) -> List[Symptom]:
-        """Extraire avec NER clinique"""
-        if not self.ner_pipeline or not text.strip():
-            return []
-        
-        try:
-            entities = self.ner_pipeline(text)
-            symptoms = []
-            
-            for entity in entities:
-                # Vérifier la structure de l'entité
-                if isinstance(entity, dict):
-                    entity_group = entity.get("entity_group", "")
-                    if entity_group and entity_group in ["SYMPTOM", "DISEASE", "SIGN"]:
-                        symptom = Symptom(
-                            text=entity.get("word", ""),
-                            type=entity_group,
-                            confidence=entity.get("score", 0.7),
-                            source="clinical_ner"
-                        )
-                        symptoms.append(symptom)
-            
-            return symptoms
-        except Exception as e:
-            if self.verbose:
-                print(f" NER extraction error: {e}")
-            return []
-    
-    def _extract_with_keywords(self, text: str, include_context: bool) -> List[Symptom]:
-        """Extraire par mots-clés"""
-        if not text.strip():
-            return []
-        
-        text_lower = text.lower()
-        symptoms = []
-        found = set()
-        
-        for symptom_name, patterns in self.symptom_patterns.items():
-            if symptom_name in found:
-                continue
-                
-            for pattern in patterns:
-                match = re.search(pattern, text_lower)
-                if match:
-                    context = ""
-                    if include_context:
-                        start = max(0, match.start() - 50)
-                        end = min(len(text_lower), match.end() + 50)
-                        context = text_lower[start:end]
-                        if start > 0:
-                            context = "..." + context
-                        if end < len(text_lower):
-                            context = context + "..."
-                    
-                    symptom = Symptom(
-                        text=symptom_name,
-                        type="SYMPTOM",
-                        confidence=0.8,
-                        source="keyword_match",
-                        context=context
-                    )
-                    
-                    symptoms.append(symptom)
-                    found.add(symptom_name)
-                    break
-        
-        return symptoms
+        return unique_symptoms
     
     def _extract_with_spacy(self, text: str) -> List[Symptom]:
-        """Extraire avec spaCy"""
-        if not self.nlp or not text.strip():
+        """Extraction avec spaCy NER"""
+        if not self.nlp:
             return []
         
         try:
@@ -197,86 +98,82 @@ class SymptomAgent:
             symptoms = []
             
             for ent in doc.ents:
-                if ent.label_ in ["DISEASE", "SYMPTOM", "PROBLEM"]:
+                # Détecter les symptômes basés sur les entités
+                if ent.label_ in ["DISEASE", "SYMPTOM"]:
+                    symptom_type = self._classify_symptom_type(ent.text)
+                    
                     symptom = Symptom(
                         text=ent.text,
-                        type=ent.label_,
-                        confidence=0.7,
-                        source="spacy"
+                        type=symptom_type,
+                        confidence=0.8,  # spaCy a une bonne confiance
+                        source="spacy_ner"
                     )
                     symptoms.append(symptom)
             
             return symptoms
         except Exception as e:
             if self.verbose:
-                print(f" spaCy extraction error: {e}")
+                print(f"⚠️ spaCy extraction error: {e}")
             return []
     
-    def visualize_results(self, results: Dict):
-        """Visualiser les résultats"""
-        print(" SYMPTOM EXTRACTION RESULTS")
+    def _extract_with_keywords(self, text: str) -> List[Symptom]:
+        """Extraction par mots-clés"""
+        text_lower = text.lower()
+        symptoms = []
         
+        for symptom_name, data in self.symptom_patterns.items():
+            for pattern in data["patterns"]:
+                if re.search(pattern, text_lower, re.IGNORECASE):
+                    symptom = Symptom(
+                        text=symptom_name.title(),
+                        type=data["type"],
+                        confidence=0.7,
+                        source="keyword_match"
+                    )
+                    symptoms.append(symptom)
+                    break
         
-        print(f"\n Text: {results['text'][:100]}...")
-        print(f" Total symptoms found: {results['metadata']['total_symptoms']}")
+        return symptoms
+    
+    def _classify_symptom_type(self, symptom_text: str) -> str:
+        """Classifie le type de symptôme"""
+        text_lower = symptom_text.lower()
         
-        if results['symptoms']:
-            print("\n Detected symptoms:")
-            for i, symptom in enumerate(results['symptoms'], 1):
-                print(f"\n{i}. {symptom['symptom'].upper()}")
-                print(f"   Type: {symptom['type']}")
-                print(f"   Source: {symptom['source']}")
-                print(f"   Confidence: {symptom['confidence']:.2f}")
-                if symptom.get('context'):
-                    print(f"   Context: {symptom['context']}")
+        if any(word in text_lower for word in ["head", "dizzy", "confusion", "migraine"]):
+            return "NEUROLOGICAL"
+        elif any(word in text_lower for word in ["chest", "heart", "breath", "palpitation"]):
+            return "CARDIOVASCULAR"
+        elif any(word in text_lower for word in ["cough", "wheez", "respiratory"]):
+            return "RESPIRATORY"
+        elif any(word in text_lower for word in ["nausea", "vomit", "diarrhea", "abdominal"]):
+            return "GASTROINTESTINAL"
+        elif any(word in text_lower for word in ["fever", "fatigue", "chills"]):
+            return "CONSTITUTIONAL"
         else:
-            print("\n No symptoms detected")
+            return "GENERAL"
     
-    def save_results(self, results: Dict, filename: str = "results.json"):
-        """Sauvegarder les résultats en JSON"""
-        try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
-            print(f" Results saved to: {filename}")
-        except Exception as e:
-            print(f" Error saving results: {e}")
+    def extract_from_text(self, text: str) -> Dict:
+        """Format pour Streamlit"""
+        symptoms = self.extract_symptoms(text)
+        
+        return {
+            "text": text,
+            "symptoms": [s.to_dict() for s in symptoms],
+            "metadata": {
+                "total_symptoms": len(symptoms),
+                "methods_used": list(set(s.source for s in symptoms))
+            }
+        }
 
-# Fonction de test
-def test_symptom_agent():
-    """Tester l'agent de symptômes"""
-    print(" Testing Symptom Agent")
+# Test
+def test():
+    agent = SymptomAgent()
+    text = "Patient has fever, headache, and chest pain"
+    results = agent.extract_from_text(text)
     
-    try:
-        agent = SymptomAgent(verbose=True)
-        
-        # Cas de test
-        test_cases = [
-            "The patient presents with fever, headache, and nausea for 3 days.",
-            "I have been experiencing chest pain and shortness of breath since yesterday.",
-            "Symptoms include cough, fatigue, and body aches.",
-            "Patient reports abdominal pain and vomiting after eating."
-        ]
-        
-        for i, text in enumerate(test_cases, 1):
-            print(f"\n Test Case {i}:")
-            print(f"Text: {text}")
-            
-            results = agent.extract_from_text(text, include_context=True)
-            agent.visualize_results(results)
-            
-            # Sauvegarder les résultats
-            agent.save_results(results, f"test_case_{i}.json")
-            
-            if i < len(test_cases):
-                input("\nPress Enter to continue...")
-        
-        print("\n All tests completed successfully!")
-        
-    except Exception as e:
-        print(f"\n Error during testing: {e}")
-        import traceback
-        traceback.print_exc()
+    print("Results:")
+    for symptom in results["symptoms"]:
+        print(f"  {symptom['symptom']}: {symptom['type']}")
 
-# Exécuter les tests si le fichier est exécuté directement
 if __name__ == "__main__":
-    test_symptom_agent()
+    test()
