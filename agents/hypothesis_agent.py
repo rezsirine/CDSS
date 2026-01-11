@@ -1,10 +1,7 @@
-from typing import List, Dict, Any
-import requests
-import json
 import re
-from datetime import datetime
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 import torch
+from typing import List, Dict, Any
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class HypothesisAgent:
     """
@@ -16,27 +13,24 @@ class HypothesisAgent:
         self.device = 0 if use_gpu and torch.cuda.is_available() else -1
 
         if verbose:
-            print(" Initializing Hypothesis Agent...")
+            print("Initializing Hypothesis Agent...")
 
-        # Charger un modèle médical léger (BioGPT ou similaire)
+        # Charger un modèle médical léger
         try:
             self.tokenizer = AutoTokenizer.from_pretrained("microsoft/BioGPT-Large")
             self.model = AutoModelForCausalLM.from_pretrained("microsoft/BioGPT-Large")
             if self.device >= 0:
                 self.model = self.model.to(self.device)
             if verbose:
-                print(" BioGPT model loaded")
+                print("BioGPT model loaded")
         except Exception as e:
             if verbose:
-                print(f" BioGPT not available: {e}. Using fallback.")
+                print(f"BioGPT not available: {e}. Using fallback.")
             self.model = None
             self.tokenizer = None
 
-        # Base de connaissances médicales (simulée)
+        # Base de connaissances médicales
         self.medical_knowledge = self._load_medical_knowledge()
-
-        if verbose:
-            print(" Hypothesis Agent initialized")
 
     def _load_medical_knowledge(self) -> Dict:
         """Charge une base de connaissances médicales basique"""
@@ -212,29 +206,35 @@ Diagnoses:"""
         scored_hypotheses.sort(key=lambda x: x["confidence"], reverse=True)
         return scored_hypotheses[:5]  # Top 5
 
-    def _calculate_confidence(self, disease: str, symptoms: List[str]) -> float:
-        """Calcule un score de confiance pour une maladie donnée"""
-        if disease not in self.medical_knowledge["symptom_disease_map"]:
-            return 0.3  # Score par défaut pour maladies inconnues
-
-        disease_symptoms = set(self.medical_knowledge["symptom_disease_map"][disease])
-        reported_symptoms = set(symptoms)
-
-        # Intersection des symptômes
-        matched_symptoms = disease_symptoms.intersection(reported_symptoms)
-
-        # Score basé sur la proportion de symptômes correspondants
-        if len(disease_symptoms) > 0:
-            base_score = len(matched_symptoms) / len(disease_symptoms)
-        else:
-            base_score = 0.5
-
-        # Bonus pour les maladies avec beaucoup de symptômes correspondants
-        if len(matched_symptoms) >= 2:
-            base_score += 0.2
-
-        return min(base_score, 1.0)
-
+# Dans la méthode _score_hypotheses, améliorez le calcul de confiance :
+def _calculate_confidence(self, disease: str, symptoms: List[str]) -> float:
+    """Calcule un score de confiance amélioré pour une maladie donnée"""
+    if disease not in self.medical_knowledge["symptom_disease_map"]:
+        return 0.5  # Augmenté de 0.3 à 0.5
+    
+    disease_symptoms = set(self.medical_knowledge["symptom_disease_map"][disease])
+    reported_symptoms = set(symptoms)
+    
+    # Intersection des symptômes
+    matched_symptoms = disease_symptoms.intersection(reported_symptoms)
+    
+    # Score basé sur la proportion
+    if len(disease_symptoms) > 0:
+        base_score = len(matched_symptoms) / len(disease_symptoms)
+    else:
+        base_score = 0.6  # Augmenté
+    
+    # Bonus pour les bonnes correspondances
+    if len(matched_symptoms) >= 2:
+        base_score = min(base_score + 0.2, 1.0)
+    if len(matched_symptoms) >= 3:
+        base_score = min(base_score + 0.1, 1.0)
+    
+    # Pénalité pour symptômes manquants importants
+    if len(disease_symptoms) > 0 and len(matched_symptoms) < len(disease_symptoms) / 2:
+        base_score = max(base_score - 0.1, 0.3)
+    
+    return min(base_score, 1.0)
     def _symptom_matches_disease(self, symptom: str, disease: str) -> bool:
         """Vérifie si un symptôme correspond à une maladie"""
         if disease in self.medical_knowledge["symptom_disease_map"]:
