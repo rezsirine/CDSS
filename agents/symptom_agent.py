@@ -1,5 +1,6 @@
 """
-Symptom Agent - Version avec spaCy maintenant disponible
+Symptom Agent -  avec spaCy 
+Hypothesis Agent → Génère des diagnostics
 """
 
 import spacy
@@ -35,22 +36,22 @@ class SymptomAgent:
         self.verbose = verbose
         
         if verbose:
-            print("🔍 Initializing Symptom Agent with spaCy...")
+            print(" Initializing Symptom Agent with spaCy...")
         
         try:
             # Charger le modèle spaCy
             self.nlp = spacy.load("en_core_web_sm")
             if verbose:
-                print("✅ spaCy model loaded successfully")
+                print(" spaCy model loaded successfully")
         except Exception as e:
-            print(f"⚠️ Could not load spaCy model: {e}")
+            print(f" Could not load spaCy model: {e}")
             self.nlp = None
         
         # Initialiser les patterns pour fallback
         self.symptom_patterns = self._initialize_symptom_patterns()
         
         if verbose:
-            print("✅ Symptom Agent initialized")
+            print(" Symptom Agent initialized")
     
     def _initialize_symptom_patterns(self):
         """Patterns pour fallback si spaCy échoue"""
@@ -113,7 +114,7 @@ class SymptomAgent:
             return symptoms
         except Exception as e:
             if self.verbose:
-                print(f"⚠️ spaCy extraction error: {e}")
+                print(f" spaCy extraction error: {e}")
             return []
     
     def _extract_with_keywords(self, text: str) -> List[Symptom]:

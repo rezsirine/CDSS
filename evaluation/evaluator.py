@@ -289,7 +289,7 @@ class ClinicalEvaluator:
         # Visualisations
         self._plot_results(f"{output_dir}/plots.png")
         
-        print(f"\n✅ Results saved to {output_dir}/")
+        print(f"\n Results saved to {output_dir}/")
     
     def _generate_text_report(self, filepath: str):
         """Génère rapport texte"""

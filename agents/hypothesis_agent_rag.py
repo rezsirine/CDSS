@@ -10,11 +10,11 @@ from Bio import Entrez
 import requests
 from xml.etree import ElementTree as ET
 
-# Configuration Entrez (OBLIGATOIRE pour PubMed)
-Entrez.email = "sirinerezgui585@gmail.com"  # MODIFIEZ CECI
+# Configuration  pour PubMed
+Entrez.email = "sirinerezgui585@gmail.com"  
 
 class PubMedRetriever:
-    """Récupérateur PubMed optimisé"""
+    """Récupérateur PubMed """
     
     def __init__(self, max_results: int = 5):
         self.max_results = max_results
@@ -24,16 +24,16 @@ class PubMedRetriever:
         """Recherche articles PubMed"""
         
         # Vérifier cache
-        if query in self.cache:
-            return self.cache[query]
+        if query in self.cache: # Si déjà recherché avant
+            return self.cache[query]# Retourne résultat du cache
         
         try:
             # Recherche IDs
             handle = Entrez.esearch(
-                db="pubmed",
-                term=query,
+                db="pubmed", # Base de données PubMed
+                term=query,# Termes de recherche (ex: "fever AND cough")
                 retmax=self.max_results,
-                sort="relevance"
+                sort="relevance" # Tri par pertinence
             )
             record = Entrez.read(handle)
             handle.close()
@@ -50,7 +50,7 @@ class PubMedRetriever:
                 rettype="abstract",
                 retmode="xml"
             )
-            records = Entrez.read(handle)
+            records = Entrez.read(handle)# Lit les données
             handle.close()
             
             articles = []
@@ -79,7 +79,7 @@ class PubMedRetriever:
             return articles
             
         except Exception as e:
-            print(f"⚠️ PubMed error: {e}")
+            print(f" PubMed error: {e}")
             return []
 
 
@@ -91,15 +91,15 @@ class HypothesisAgentWithRAG:
     
     def __init__(self, use_gpu: bool = False, verbose: bool = True):
         self.verbose = verbose
-        self.use_gpu = use_gpu
+        self.use_gpu = use_gpu# Utiliser GPU ou non
         self.device = 0 if use_gpu and torch.cuda.is_available() else -1
         
         # PubMed Retriever
         self.pubmed = PubMedRetriever(max_results=5)
         
-        # BioGPT
+        # modèle de langage médical (BioGPT) pour proposer des diagnostics
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(
+            self.tokenizer = AutoTokenizer.from_pretrained(# Charge le tokenizer
                 "microsoft/BioGPT-Large",
                 local_files_only=True
             )
@@ -111,12 +111,12 @@ class HypothesisAgentWithRAG:
                 self.model = self.model.to(self.device)
             
             if verbose:
-                print("✅ BioGPT-Large loaded")
+                print(" BioGPT-Large loaded")
         except:
             self.model = None
             self.tokenizer = None
-            if verbose:
-                print("⚠️ BioGPT not available, using rules")
+            if verbose:#Si échec,  utilise des règles simples (ex: fièvre + toux = pneumonie possible)
+                print(" BioGPT not available, using rules")
         
         # Knowledge base
         self.medical_kb = self._init_medical_kb()
@@ -137,7 +137,7 @@ class HypothesisAgentWithRAG:
         Génère hypothèses avec RAG-enhanced generation
         """
         if self.verbose:
-            print(f"\n🔍 Generating RAG-enhanced hypotheses...")
+            print(f"\n Generating RAG-enhanced hypotheses...")
             print(f"   Symptoms: {symptoms}")
         
         # 1. Récupérer littérature PubMed
@@ -156,7 +156,7 @@ class HypothesisAgentWithRAG:
             hyp['rag_enhanced'] = bool(rag_context)
         
         if self.verbose:
-            print(f"   ✅ Generated {len(hypotheses)} hypotheses (RAG: {bool(rag_context)})")
+            print(f"    Generated {len(hypotheses)} hypotheses (RAG: {bool(rag_context)})")
         
         return hypotheses
     
@@ -165,12 +165,12 @@ class HypothesisAgentWithRAG:
         all_abstracts = []
         
         # Construire requête
-        symptom_query = " AND ".join(symptoms[:3])  # Limiter à 3 symptômes
+        symptom_query = " AND ".join(symptoms[:3])  # Limiter à 3 symptômes( Fièvre AND Toux AND Fatigue)
         query = f"{symptom_query} AND (diagnosis OR differential diagnosis)"
         
         if self.verbose:
-            print(f"   📚 Searching PubMed: '{query}'")
-        
+            print(f"    Searching PubMed: '{query}'")
+         # Recherche PubMed
         articles = self.pubmed.search_pubmed(query)
         
         if articles:
@@ -178,7 +178,7 @@ class HypothesisAgentWithRAG:
                 all_abstracts.append(f"[{article['pmid']}] {article['abstract'][:300]}")
             
             if self.verbose:
-                print(f"   ✅ Retrieved {len(articles)} PubMed articles")
+                print(f"    Retrieved {len(articles)} PubMed articles")
             
             return "\n\n".join(all_abstracts)
         
@@ -228,7 +228,7 @@ Generate {top_k} most likely differential diagnoses with brief explanations:
             
         except Exception as e:
             if self.verbose:
-                print(f"   ⚠️ BioGPT generation failed: {e}")
+                print(f"    BioGPT generation failed: {e}")
             return self._generate_with_rules(symptoms, top_k)
     
     def _parse_biogpt_output(self, text: str, top_k: int) -> List[Dict]:

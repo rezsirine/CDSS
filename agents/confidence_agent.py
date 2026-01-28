@@ -5,7 +5,8 @@ import warnings
 
 class ConfidenceAgent:
     """
-    Agent de calcul de scores de confiance clinique amélioré
+    Agent de calcul de scores de confiance clinique (Mesurer la fiabilité du diagnostic.)
+    "Confiance = (Poids1 × Certitude) + (Poids2 × Validation) + (Poids3 × Explications)"
     """
     def __init__(self, calibration_method="isotonic", verbose=True):
         self.calibration_method = calibration_method
@@ -38,12 +39,12 @@ class ConfidenceAgent:
             max_prob = 0.5
             epistemic_uncertainty = 0.5
         
-        # 2. Score de validation clinique (amélioré)
+        # 2. Score de validation clinique 
         if validation_scores:
             # Poids plus important pour les validations
             clinical_consistency = np.mean(list(validation_scores.values()))
             
-            # Bonus si certaines validations sont bonnes
+            #  si certaines validations sont bonnes
             good_validations = sum(1 for v in validation_scores.values() if v > 0.6)
             if good_validations > 0:
                 clinical_consistency = min(clinical_consistency + 0.1, 1.0)

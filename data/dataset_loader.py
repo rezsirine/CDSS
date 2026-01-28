@@ -13,7 +13,7 @@ try:
     from datasets import load_dataset
     DATASETS_AVAILABLE = True
 except Exception as e:
-    print(f"⚠️ HuggingFace datasets not available: {e}")
+    print(f" HuggingFace datasets not available: {e}")
     print("   Using synthetic datasets only")
     DATASETS_AVAILABLE = False
 
@@ -30,7 +30,7 @@ class MedicalDatasetLoader:
         """
         Charge MedQA dataset
         """
-        print(f"📥 Loading MedQA ({split})...")
+        print(f" Loading MedQA ({split})...")
         
         if not DATASETS_AVAILABLE:
             print("   Using synthetic MedQA (datasets library unavailable)")
@@ -57,17 +57,17 @@ class MedicalDatasetLoader:
                 })
             
             df = pd.DataFrame(data)
-            print(f"   ✅ Loaded {len(df)} MedQA samples")
+            print(f"    Loaded {len(df)} MedQA samples")
             return df
             
         except Exception as e:
-            print(f"   ⚠️ MedQA loading failed: {e}")
+            print(f"    MedQA loading failed: {e}")
             print("   Creating synthetic MedQA samples...")
             return self._create_synthetic_medqa(max_samples)
     
     def load_pubmedqa(self, split: str = "train", max_samples: int = 500) -> pd.DataFrame:
         """Charge PubMedQA"""
-        print(f"📥 Loading PubMedQA ({split})...")
+        print(f" Loading PubMedQA ({split})...")
         
         if not DATASETS_AVAILABLE:
             return pd.DataFrame()
@@ -93,20 +93,20 @@ class MedicalDatasetLoader:
                 })
             
             df = pd.DataFrame(data)
-            print(f"   ✅ Loaded {len(df)} PubMedQA samples")
+            print(f"    Loaded {len(df)} PubMedQA samples")
             return df
             
         except Exception as e:
-            print(f"   ⚠️ PubMedQA failed: {e}")
+            print(f"    PubMedQA failed: {e}")
             return pd.DataFrame()
     
     def load_symptom2disease(self, file_path: str = None) -> pd.DataFrame:
         """Charge Symptom2Disease"""
-        print("📥 Loading Symptom2Disease...")
+        print(" Loading Symptom2Disease...")
         
         if file_path and os.path.exists(file_path):
             df = pd.read_csv(file_path)
-            print(f"   ✅ Loaded {len(df)} samples from {file_path}")
+            print(f"    Loaded {len(df)} samples from {file_path}")
             return df
         
         print("   Creating synthetic Symptom2Disease dataset...")
@@ -114,7 +114,7 @@ class MedicalDatasetLoader:
     
     def load_mimic_simplified(self, max_samples: int = 200) -> pd.DataFrame:
         """MIMIC-IV simplifié"""
-        print("📥 Loading MIMIC-IV (simplified)...")
+        print(" Loading MIMIC-IV (simplified)...")
         print("   Creating MIMIC-inspired synthetic data...")
         return self._create_synthetic_mimic(max_samples)
     
@@ -178,7 +178,7 @@ class MedicalDatasetLoader:
             item['symptoms_str'] = ", ".join(item['symptoms'])
         
         df = pd.DataFrame(data)
-        print(f"   ✅ Created {len(df)} synthetic symptom-disease pairs")
+        print(f"    Created {len(df)} synthetic symptom-disease pairs")
         
         return df
     
@@ -222,7 +222,7 @@ class MedicalDatasetLoader:
             })
         
         df = pd.DataFrame(data)
-        print(f"   ✅ Created {len(df)} synthetic MIMIC-style records")
+        print(f"    Created {len(df)} synthetic MIMIC-style records")
         
         return df
     

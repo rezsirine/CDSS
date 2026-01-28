@@ -4,20 +4,39 @@ import warnings
 
 class XAIAgent:
     """
-    Agent d'explication et contrefactuels (version simplifiée)
+    Agent d'explication et contrefactuels 
+    SHAP et LIME pour expliquer les décisions des IA:
+    1. Importance des symptômes :
+{
+  "fièvre": 0.9,  # Très important pour pneumonie
+  "toux": 0.8,    # Important
+  "fatigue": 0.5  # Peu important (pas dans les règles)
+}
+2. Contrefactuels ("Et si...") :
+"Si pas de fièvre" :
+
+counterfactuals.append({
+    "scenario": "If fever was absent",
+    "reasoning": "Fever is key for pneumonia diagnosis"
+})
+→ "SI vous n'aviez pas de fièvre, on penserait plutôt à un virus simple"
+
+3. Analyse de sensibilité :
+→ "Si on enlève la fièvre, le diagnostic changerait beaucoup. Si on enlève la fatigue, il changerait peu."
+
     """
     def __init__(self, model=None, verbose: bool = True):
         """
         Initialise l'agent XAI
         
         Args:
-            model: Modèle ML optionnel
+            model: Modèle ML 
             verbose: Mode verbeux
         """
         self.verbose = verbose
         self.model = model
         
-        # Essayer d'importer SHAP et LIME (optionnels)
+        # Essayer d'importer SHAP et LIME 
         self.shap_available = False
         self.lime_available = False
         
@@ -48,12 +67,12 @@ class XAIAgent:
                             hypothesis: Dict,
                             feature_values: Optional[List[float]] = None) -> Dict:
         """
-        Génère des explications et contrefactuels (version simplifiée)
+        Génère des explications et contrefactuels 
         
         Args:
             symptoms: Liste des symptômes
             hypothesis: Hypothèse diagnostique
-            feature_values: Valeurs des features (optionnel)
+            feature_values: Valeurs des features 
             
         Returns:
             Dict avec les explications
@@ -167,7 +186,7 @@ class XAIAgent:
         return counterfactuals[:3]  # Limiter à 3 scénarios
     
     def _sensitivity_analysis(self, symptoms: List[str], hypothesis: Dict) -> Dict:
-        """Analyse de sensibilité (quel symptôme change le plus le diagnostic)"""
+        """Analyse de sensibilité (mesure de combien le diagnostic changerait si on enlève ce symptôme)"""
         sensitivity_scores = {}
         
         for i, symptom in enumerate(symptoms):
@@ -187,7 +206,7 @@ class XAIAgent:
         }
     
     def _compute_shap_values(self, feature_values: List[float]) -> Dict:
-        """Calcule les valeurs SHAP (simulé pour l'instant)"""
+        """Calcule les valeurs SHAP (combien chaque symptôme contribue au diagnostic.)"""
         # Simulation - à remplacer par vrai calcul SHAP
         n_features = len(feature_values)
         shap_values = {
@@ -201,7 +220,7 @@ class XAIAgent:
     
     def _compute_lime_explanation(self, feature_values: List[float], 
                                 feature_names: List[str]) -> Dict:
-        """Calcule l'explication LIME (simulé)"""
+        """Calcule l'explication LIME (pourquoi cette décision a été prise.)"""
         # Simulation - à remplacer par vrai LIME
         return {
             "explanation": "LIME explanation would show feature contributions",

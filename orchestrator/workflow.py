@@ -1,6 +1,6 @@
 """
 orchestrator/workflow.py - Clinical Decision Support Workflow
-Version complète avec détection des symptômes et génération d'hypothèses
+ détection des symptômes et génération d'hypothèses
 """
 
 import asyncio
@@ -43,7 +43,7 @@ class ClinicalWorkflow:
         
         if verbose:
             print("Initializing Clinical Workflow...")
-            print("✅ Enhanced symptom detection mode activated")
+            print(" Enhanced symptom detection mode activated")
     
     async def run(self, patient_input: str) -> Dict:
         """Exécute le workflow asynchrone"""
@@ -89,7 +89,7 @@ class ClinicalWorkflow:
         }
         
         if self.verbose:
-            print(f"✅ Workflow completed in {processing_time:.3f} seconds")
+            print(f" Workflow completed in {processing_time:.3f} seconds")
             print(f"   Detected {len(symptoms)} symptoms")
             print(f"   Generated {len(validated_hypotheses)} hypotheses")
         
@@ -887,7 +887,7 @@ def test_workflow():
         try:
             results = workflow.run_sync(case)
             
-            print(f"\n📊 RESULTS:")
+            print(f"\n RESULTS:")
             print(f"  Symptoms detected: {len(results['symptoms'])}")
             for s in results['symptoms'][:3]:  # Montrer les 3 premiers
                 print(f"    - {s['symptom']} ({s['type']}, conf: {s['confidence']})")
@@ -904,7 +904,7 @@ def test_workflow():
             print(f"  Processing time: {results['metadata']['processing_time']:.3f}s")
             
         except Exception as e:
-            print(f"❌ Error in test case {i}: {e}")
+            print(f" Error in test case {i}: {e}")
     
     print("\n" + "=" * 60)
     print("WORKFLOW TEST COMPLETED")

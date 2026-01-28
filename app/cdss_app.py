@@ -7,14 +7,20 @@ import json
 from datetime import datetime
 
 # ============================================================================
-# CONFIGURATION DES CHEMINS
+# CONFIGURATION DES CHEMINS - CORRECTION CRITIQUE
 # ============================================================================
 
-# Obtenir le répertoire racine du projet
-current_dir = Path(__file__).parent  # app/
-project_root = current_dir.parent    # CDSS/
+# CHEMIN ABSOLU - C'est la correction principale
+current_file = Path(__file__).resolve()  # Chemin ABSOLU du fichier
+current_dir = current_file.parent        # app/ (absolu)
+project_root = current_dir.parent        # CDSS/ (absolu)
 
-# Ajouter les chemins pour les imports
+# Afficher pour débogage (optionnel, peut être retiré après)
+print(f" current_file: {current_file}")
+print(f" current_dir: {current_dir}")
+print(f" project_root: {project_root}")
+
+# Ajouter les chemins ABSOLUS pour les imports
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "orchestrator"))
 sys.path.insert(0, str(project_root / "agents"))
@@ -24,7 +30,7 @@ os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 
 # ============================================================================
-# FONCTIONS UTILITAIRES
+# FONCTIONS UTILITAIRES - IDENTIQUES À VOTRE CODE
 # ============================================================================
 
 def init_workflow():
@@ -55,7 +61,7 @@ def analyze_symptoms(workflow, text):
         return {"error": str(e)}
 
 # ============================================================================
-# FONCTION PRINCIPALE
+# FONCTION PRINCIPALE - IDENTIQUE À VOTRE CODE
 # ============================================================================
 
 def main():
@@ -230,6 +236,12 @@ def main():
             workflow_path = project_root / "orchestrator" / "workflow.py"
             st.write(f"**Fichier workflow:** {workflow_path}")
             st.write(f"**Existe:** {workflow_path.exists()}")
+            
+            # Vérifier aussi les __init__.py
+            init_orchestrator = project_root / "orchestrator" / "__init__.py"
+            st.write(f"**__init__.py orchestrator:** {init_orchestrator.exists()}")
+            init_agents = project_root / "agents" / "__init__.py"
+            st.write(f"**__init__.py agents:** {init_agents.exists()}")
         
         return
     

@@ -1,5 +1,9 @@
 """
-Validator Agent - Version corrigée
+Validator Agent → Valide la cohérence
+# Vérifie 3 choses :
+1. ontology.check_consistency(diagnosis, symptoms)  # Ça colle ?
+2. _check_emergency_indicators(symptoms)           # Urgence ?
+3. _check_contradictions(symptoms)                # Contradictions ?
 """
 
 from typing import List, Dict, Any, Optional
@@ -45,10 +49,10 @@ class ValidatorAgent:
         
         diagnosis = hypothesis['diagnosis']
         
-        # 1. Vérification de cohérence avec l'ontologie
+        # 1. Vérifie si les symptômes correspondent au diagnostic
         ontology_result = self.ontology.check_consistency(diagnosis, symptoms)
         
-        # 2. Vérification des indicateurs d'urgence
+         # 2. Vérifie les symptômes d'urgence
         emergency_flags = self._check_emergency_indicators(symptoms)
         
         # 3. Vérification des contradictions
